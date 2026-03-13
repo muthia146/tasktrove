@@ -9,22 +9,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      alert(error.message)
+  const handleLogin = async (e: any) => {
+    e.preventDefault();
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('token', data.token);
+      // Paksa pindah halaman
+      window.location.href = '/dashboard';
     } else {
-      router.push('/')
-      router.refresh()
+      alert("Email/Password salah!");
     }
-    setLoading(false)
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">

@@ -1,29 +1,28 @@
 import { SignJWT } from 'jose';
+import { supabase } from '@/utils/supabase';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { email, password } = body;
+  try {
+    const { email, password } = await request.json();
 
-  if (email === "muthiaar@gmail.com" && password === "123456") {
+    // Biarkan Supabase mengecek email & password asli
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error || !data.user) {
+      return NextResponse.json({ message: "Email atau Password salah!" }, { status: 401 });
+    }
+
+    // Buat JWT pakai ID asli dari user yang baru login
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    
-    // Membuat Token JWT
-    const token = await new SignJWT({ email })
+    const token = await new SignJWT({ id: data.user.id, email: data.user.email })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('2h') // Token hangus dalam 2 jam
+      .setExpirationTime('2h')
       .sign(secret);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Login Berhasil!", 
-      token 
-    });
+    return NextResponse.json({ success: true, token });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  return NextResponse.json(
-    { success: false, message: "Email atau Password salah!" },
-    { status: 401 }
-  );
 }

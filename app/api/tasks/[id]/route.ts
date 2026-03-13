@@ -1,26 +1,50 @@
-import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { NextResponse } from 'next/server';
 
-// PATCH: Update status selesai atau judul (UPDATE)
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const { is_completed, title } = await request.json();
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ is_completed, title })
-    .eq('id', params.id)
-    .select();
+// Tambahkan async di sini
+export async function DELETE(
+  req: Request, 
+  { params }: { params: Promise<{ id: string }> } // Gunakan Promise di sini
+) {
+  try {
+    // WAJIB: Await params-nya dulu
+    const resolvedParams = await params;
+    const idTugas = resolvedParams.id;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data);
+    if (!idTugas) {
+      return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('assignments')
+      .delete()
+      .eq('id', idTugas);
+
+    if (error) throw error;
+
+    return NextResponse.json({ message: "Berhasil dihapus" }, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
-// DELETE: Menghapus tugas (DELETE)
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('id', params.id);
+// Lakukan hal yang sama untuk PATCH
+export async function PATCH(
+  req: Request, 
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const { status, link } = await req.json();
+    
+    const { error } = await supabase
+      .from('assignments')
+      .update({ status, link })
+      .eq('id', resolvedParams.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ message: "Data dihapus!" });
+    if (error) throw error;
+    return NextResponse.json({ message: "Berhasil diupdate" });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
