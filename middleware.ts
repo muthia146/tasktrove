@@ -4,18 +4,22 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-
+  
   // Lindungi semua route API tasks
   if (request.nextUrl.pathname.startsWith('/api/tasks')) {
-    if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const token = authHeader?.split(' ')[1];
+    
+    if (!token) {
+      return NextResponse.json({ message: 'Missing Token' }, { status: 401 });
+    }
 
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || '');
       await jwtVerify(token, secret);
       return NextResponse.next();
     } catch (err) {
-      return NextResponse.json({ message: 'Invalid Token' }, { status: 401 });
+      // Jika token expired atau secret salah
+      return NextResponse.json({ message: 'Invalid or Expired Token' }, { status: 401 });
     }
   }
   return NextResponse.next();
